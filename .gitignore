@@ -1,0 +1,77 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtualenv
+.venv/
+venv/
+ENV/
+env/
+
+# Logs
+*.log
+*.out
+*.err
+
+# =========================
+# Node / Frontend (Svelte + Vite)
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.vscode/
+.DS_Store
+
+# Vite build
+dist/
+build/
+
+# =========================
+# Docker
+# =========================
+/*.pid
+/.env
+docker-compose.override.yml
+*.pid
+*.seed
+
+# =========================
+# Project specific
+# =========================
+# Output images & data
+/app/output/
+/app/data/*.jpg
+/app/data/*.png
+/app/data/*.mp4
+
+# Models (çok büyük dosyalar, repo şişmesin)
+models/
+*.pt
+*.onnx
+*.weights
+
+# Redis dump
+dump.rdb
+
+# Camera configs (özel IP içerir)
+cameras.json
+
+# =========================
+# IDE / OS junk
+# =========================
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+Desktop.ini

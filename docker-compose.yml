@@ -1,0 +1,139 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports: [ "6379:6379" ]
+    volumes:
+      - redis-data:/data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks: [ app_network ]
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    volumes:
+      - ./api:/app
+      - ./data:/app/data
+      - ./output:/app/output
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CHANNEL_NAME: imgproc_events
+    ports: [ "8000:8000" ]
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [ app_network ]
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    volumes:
+      - ./worker:/app
+      - ./data:/app/data
+      - ./output:/app/output
+      - ./models:/app/models
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    environment:
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CHANNEL_NAME: imgproc_events
+
+      # Sigara modeli
+      SMOKE_MODEL_PATH: /app/models/smoke.pt
+      SMOKE_CONF: "0.60" # hafif sıkı; gerekirse 0.25 yap
+      SMOKE_IOU: "0.50"
+      IMG_SIZE: "1280" # küçük nesne için büyük çözünürlük
+
+      # Kişi kontrolü (gating)
+      REQUIRE_PERSON: "true"
+      PERSON_MODEL_PATH: "yolo11n.pt" # internet yoksa: /app/models/yolo11n.pt
+      PERSON_CONF: "0.30"
+      PERSON_IMG_SIZE: "640"
+
+      # Kişi kutusunu genişlet
+      BBOX_EXPAND: "1.6"
+      BBOX_PAD: "24"
+
+      # Filtreler (gevşek)
+      MIN_BOX_AREA: "0"
+      MAX_BOX_AREA_RATIO: "1.0"
+      ASPECT_MIN: "1.0"
+
+      # FP azaltma (gözlük vs.)
+      TOP_FACE_IGNORE_FRAC: "0.30"
+      RAW_MIN_ASPECT: "2.0"
+      RAW_MAX_ASPECT: "12.0"
+      RAW_MAX_FRAC_OF_PERSON: "0.25"
+
+      # Yayın / örnekleme
+      SAMPLE_EVERY: "1"
+      PERSIST_HITS: "1"
+      COOLDOWN_SEC: "8"
+
+      # Opsiyoneller
+      ENABLE_BLUE: "false"
+      ENABLE_HEUR_SMOKE: "false"
+
+      # Debug
+      DEBUG_LOG: "true"
+      DEBUG_DRAW_RAW: "true"
+
+      WANDB_DISABLED: "true"
+      YOLO_CONFIG_DIR: /tmp/Ultralytics
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    restart: unless-stopped
+    networks: [ app_network ]
+
+  # Eğitim için: docker compose run --rm trainer
+  trainer:
+    image: ultralytics/ultralytics:latest-cpu
+    working_dir: /app
+    volumes:
+      - ./datasets:/app/datasets
+      - ./models:/app/models
+      - ./runs:/app/runs
+    environment:
+      WANDB_DISABLED: "true"
+    command: >-
+      bash -lc "yolo detect train data=/app/datasets/smoking/data.yaml model=yolo11m.pt epochs=80 imgsz=640 batch=4 device=cpu project=/app/runs name=smoke_11m && (cp -f /app/runs/smoke_11m/weights/best.pt /app/models/smoke.pt || cp -f /app/runs/detect/smoke_11m/weights/best.pt /app/models/smoke.pt)"
+    networks: [ app_network ]
+
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && (npm run dev &) && npm run start"
+    ports: [ "5173:5173" ]
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+    networks: [ app_network ]
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  redis-data:

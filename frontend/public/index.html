@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ImageProcessing</title>
+
+  <!-- Svelte'in ürettiği CSS -->
+  <link rel="stylesheet" href="/build/bundle.css" />
+
+   <!-- Global stiller -->
+  <link rel="stylesheet" href="/global.css" />
+
+  <!-- Runtime API adresi (Rollup, Vite yok) -->
+  <script>
+    // URL'den override edebilirsin: ?api=http://localhost:8000
+    window.API_BASE =
+      new URLSearchParams(location.search).get('api') ||
+      'http://localhost:8000';
+  </script>
+
+  <!-- Svelte bundle -->
+  <script defer src="/build/bundle.js"></script>
+</head>
+<body>
+  <noscript>Bu uygulamayı kullanmak için JavaScript'i etkinleştir.</noscript>
+</body>
+</html>
