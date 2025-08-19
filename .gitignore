@@ -51,9 +51,9 @@ docker-compose.override.yml
 # =========================
 # Output images & data
 /app/output/
-/app/data/*.jpg
-/app/data/*.png
-/app/data/*.mp4
+# /app/data/*.jpg
+# /app/data/*.png
+# /app/data/*.mp4
 
 # Models (çok büyük dosyalar, repo şişmesin)
 models/
@@ -65,7 +65,7 @@ models/
 dump.rdb
 
 # Camera configs (özel IP içerir)
-cameras.json
+#cameras.json
 
 # =========================
 # IDE / OS junk
